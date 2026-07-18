@@ -126,10 +126,11 @@ final class LocalActionDispatcher {
         process.standardError = FileHandle.nullDevice
         process.terminationHandler = { [weak self] process in
             let status = process.terminationStatus
+            let dispatcher = self
             Task { @MainActor in
-                self?.runningProcesses.removeValue(forKey: identifier)
+                dispatcher?.runningProcesses.removeValue(forKey: identifier)
                 if status != 0 {
-                    self?.onAsyncError?(LocalActionDispatchError.automationFailed(name, status))
+                    dispatcher?.onAsyncError?(LocalActionDispatchError.automationFailed(name, status))
                 }
             }
         }

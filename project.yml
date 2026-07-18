@@ -2,12 +2,12 @@ name: Holo
 options:
   bundleIdPrefix: com.holo
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "13.0"
   createIntermediateGroups: true
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: 0.1.0
     CLANG_ENABLE_MODULES: YES

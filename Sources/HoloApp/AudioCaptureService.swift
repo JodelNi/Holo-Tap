@@ -44,7 +44,11 @@ enum MicrophoneAuthorizationState {
     case unavailable
 }
 
+// Conditional isolation is to cater for older Macs whose Xcode toolchains do
+// not understand `nonisolated(unsafe)` stored properties.
+#if compiler(>=6.0)
 @MainActor
+#endif
 final class AudioCaptureService: ObservableObject {
     private struct PendingStart {
         var id: UUID
@@ -65,13 +69,22 @@ final class AudioCaptureService: ObservableObject {
     private var engine: AVAudioEngine?
     private var probePlayer: AVAudioPlayerNode?
     private var configurationObserver: NSObjectProtocol?
-    nonisolated private let processingQueue = DispatchQueue(label: "com.holo.audio-analysis", qos: .userInteractive)
+    private let processingQueue = DispatchQueue(label: "com.holo.audio-analysis", qos: .userInteractive)
+    #if compiler(>=6.0)
     nonisolated(unsafe) private var detector: StreamingTapDetector?
     nonisolated(unsafe) private var extractor: TapFeatureExtractor?
     nonisolated(unsafe) private var timing = CallbackTimingAccumulator()
     nonisolated(unsafe) private var sampleRate = 48_000.0
     nonisolated(unsafe) private var inputLatencySeconds = 0.0
     nonisolated(unsafe) private var callbackCounter = 0
+    #else
+    private var detector: StreamingTapDetector?
+    private var extractor: TapFeatureExtractor?
+    private var timing = CallbackTimingAccumulator()
+    private var sampleRate = 48_000.0
+    private var inputLatencySeconds = 0.0
+    private var callbackCounter = 0
+    #endif
     private var captureGeneration: UInt64 = 0
     private let bufferFrames: AVAudioFrameCount = 512
     // Authorization is process-wide, not tied to one capture-service object.
@@ -353,7 +366,10 @@ final class AudioCaptureService: ObservableObject {
         probePlayer = player
     }
 
-    nonisolated private func process(
+    #if compiler(>=6.0)
+    nonisolated
+    #endif
+    private func process(
         channels: [[Float]],
         callbackUptime: Double,
         bufferStartHostTimeSeconds: Double,

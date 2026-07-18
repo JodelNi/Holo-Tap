@@ -27,7 +27,7 @@ struct ZoneActionsView: View {
                                     onChange: { action in
                                         model.updateAction(for: configuration.zone, action: action)
                                     },
-                                    onTest: model.testAction,
+                                    onTest: { model.testAction($0) },
                                     onError: { error in
                                         model.errorMessage = "The action could not be assigned. \(error.localizedDescription)"
                                     }
@@ -43,7 +43,7 @@ struct ZoneActionsView: View {
                                     onChange: { action in
                                         model.updateAction(for: configuration.zone, action: action)
                                     },
-                                    onTest: model.testAction,
+                                    onTest: { model.testAction($0) },
                                     onError: { error in
                                         model.errorMessage = "The action could not be assigned. \(error.localizedDescription)"
                                     }
@@ -79,7 +79,7 @@ struct ZoneActionsView: View {
                 .padding(36)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ContentUnavailableView {
+                HoloUnavailableView {
                     Label("No Desk Profile", systemImage: "macbook")
                 } description: {
                     Text("Calibrate the four zones before assigning actions.")
@@ -161,7 +161,7 @@ private struct ZoneActionRow: View {
             .frame(width: 86, alignment: .leading)
         }
         .padding(.vertical, 4)
-        .onChange(of: action) { oldValue, newValue in
+        .onCompatibleChange(of: action) { oldValue, newValue in
             if isRevertingFailedSave {
                 isRevertingFailedSave = false
                 return
