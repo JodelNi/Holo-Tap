@@ -25,6 +25,7 @@
 		53B53A46371B34216E082389 /* AudioHardwarePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1637550E7F75A6E7BFCE8862 /* AudioHardwarePolicyTests.swift */; };
 		547114D94C6141308AF38349 /* FFTTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 902892881D6C4EB78D348E4A /* FFTTests.swift */; };
 		5A6F55DFDAE55D36753BC3BF /* AudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634844CB07B4E483B2423FEB /* AudioCaptureService.swift */; };
+		5E0210E5B3AB4AC0A0A27A54 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2146B4C4DF34EC7A6F05DE6 /* Assets.xcassets */; };
 		5B7C275226A76CE84A986426 /* DetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89EDE7CBFB7D30EF016984BB /* DetectorTests.swift */; };
 		5BA2A1CF3E0DCE6A8C4F698A /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E202AF9AF65D4A6DAD062BA /* PersistenceTests.swift */; };
 		5CFC182DD58D4A037DC6CCC3 /* LocalActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC2F285F73EF896D8A3EF6EF /* LocalActions.swift */; };
@@ -159,6 +160,7 @@
 		9F71702ABD6F816E14DCE97F /* HoloCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HoloCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9FE34803263D649D4BCD0736 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
 		A36F157ED33FCF6F689804F7 /* SystemAudioRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioRoute.swift; sourceTree = "<group>"; };
+		A2146B4C4DF34EC7A6F05DE6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A905A97F45BFE70DF240318C /* ClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassifierTests.swift; sourceTree = "<group>"; };
 		B8276F53CD4BAD0E4134BE5E /* LiveSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSurfaceView.swift; sourceTree = "<group>"; };
 		C1C797ED25B4E0F506DC4F10 /* FFT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFT.swift; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 				634844CB07B4E483B2423FEB /* AudioCaptureService.swift */,
 				06C2F6E8443039D83D1F6B16 /* CalibrationView.swift */,
 				5FF21B7AD4164E98A8545183 /* Compatibility.swift */,
+				A2146B4C4DF34EC7A6F05DE6 /* Assets.xcassets */,
 				4B9EA1642DC1B50D9B998D42 /* DeskMapView.swift */,
 				8DD162A27694A39536B08B76 /* DiagnosticsView.swift */,
 				E3398CF16BF083A03B5897A9 /* EvaluationView.swift */,
@@ -402,6 +405,7 @@
 			buildPhases = (
 				526638B757E6B22CE4A766D6 /* Sources */,
 				E0BA8B99092B27F3E7081993 /* Frameworks */,
+				F1F2593787F94F6EAD71182A /* Resources */,
 				E3601B2DC9870CEA09070562 /* Embed Frameworks */,
 			);
 			buildRules = (
@@ -473,6 +477,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F1F2593787F94F6EAD71182A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E0210E5B3AB4AC0A0A27A54 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		526638B757E6B22CE4A766D6 /* Sources */ = {
