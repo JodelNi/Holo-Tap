@@ -7,3 +7,7 @@ xcuserdata/
 Holo.xcodeproj/project.xcworkspace/xcuserdata/
 Holo.xcodeproj/xcuserdata/
 
+# Windows .NET build artifacts
+windows/**/bin/
+windows/**/obj/
+

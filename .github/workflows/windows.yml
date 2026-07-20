@@ -1,0 +1,34 @@
+name: Windows Build
+
+on:
+  push:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore windows/HoloWindows/HoloWindows.csproj && dotnet restore windows/HoloWindows.Tests/HoloWindows.Tests.csproj
+
+      - name: Build
+        run: |
+          dotnet build windows/HoloWindows/HoloWindows.csproj --no-restore --configuration Release
+          dotnet build windows/HoloWindows.Tests/HoloWindows.Tests.csproj --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test windows/HoloWindows.Tests/HoloWindows.Tests.csproj --configuration Release --no-restore
