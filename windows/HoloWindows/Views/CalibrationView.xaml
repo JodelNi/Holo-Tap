@@ -1,0 +1,107 @@
+<UserControl x:Class="Holo.Views.CalibrationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <!-- Setup screen (shown before calibration starts) -->
+        <StackPanel x:Name="SetupPanel" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="Calibration"
+                       FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,16" />
+            <TextBlock Text="Train the classifier by tapping each zone 10 times."
+                       FontSize="13" Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,24" />
+
+            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8"
+                    Padding="24" Background="#FAFAFA" Width="420">
+                <StackPanel>
+                    <TextBlock Text="Setup" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,12" />
+                    <TextBlock Text="1. Place your laptop in its working position." FontSize="12" Margin="0,0,0,4" />
+                    <TextBlock Text="2. Describe your desk surface." FontSize="12" Margin="0,0,0,4" />
+                    <TextBlock Text="3. Tap each zone 10 times when prompted." FontSize="12" Margin="0,0,0,12" />
+
+                    <Label Content="Profile name:" FontSize="12" Margin="0,4,0,0" />
+                    <TextBox x:Name="ProfileNameBox" Text="My Desk" FontSize="13" Margin="0,2,0,8" Padding="4" />
+
+                    <Label Content="Surface:" FontSize="12" Margin="0,4,0,0" />
+                    <TextBox x:Name="SurfaceBox" Text="Rigid desk" FontSize="13" Margin="0,2,0,8" Padding="4" />
+
+                    <Label Content="Laptop position:" FontSize="12" Margin="0,4,0,0" />
+                    <TextBox x:Name="PositionBox" Text="Laptop centered" FontSize="13" Margin="0,2,0,12" Padding="4" />
+
+                    <Label Content="Sensing strategy:" FontSize="12" Margin="0,4,0,0" />
+                    <ComboBox x:Name="StrategyBox" SelectedIndex="0" FontSize="13" Margin="0,2,0,12">
+                        <ComboBoxItem Content="Passive tap acoustics" Tag="Passive" />
+                        <ComboBoxItem Content="Active acoustic probe" Tag="Active" IsEnabled="False" ToolTip="Not yet implemented" />
+                        <ComboBoxItem Content="Hybrid" Tag="Hybrid" IsEnabled="False" ToolTip="Not yet implemented" />
+                    </ComboBox>
+
+                    <Button x:Name="StartCalibrationButton" Content="Start Calibration"
+                            Padding="16,10" Margin="0,4,0,0"
+                            Background="#0078D4" Foreground="White"
+                            Click="OnStartCalibration" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Active calibration screen -->
+        <StackPanel x:Name="ActivePanel" Visibility="Collapsed"
+                    VerticalAlignment="Center" HorizontalAlignment="Center" Width="520">
+            <TextBlock Text="Calibration"
+                       FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,8" />
+
+            <!-- Zone indicator + instruction -->
+            <Border x:Name="ZoneIndicator" BorderBrush="#0078D4" BorderThickness="2" CornerRadius="8"
+                    Padding="16" Background="#F0F6FF" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock x:Name="CurrentZoneName" Text="Left Rear" FontSize="20" FontWeight="SemiBold"
+                               Foreground="#0078D4" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="CurrentZoneInstruction"
+                               Text="Tap beside the MacBook on the left, near the display edge"
+                               FontSize="12" Foreground="Gray" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Overall progress -->
+            <TextBlock Text="Overall progress" FontSize="12" Foreground="Gray" Margin="0,0,0,4" />
+            <ProgressBar x:Name="OverallProgress" Height="8" Value="0" Maximum="40"
+                         Foreground="#0078D4" Background="#E0E0E0" Margin="0,0,0,4" />
+            <TextBlock x:Name="OverallProgressText" Text="0 / 40" FontSize="11" Foreground="Gray"
+                       HorizontalAlignment="Right" Margin="0,0,0,12" />
+
+            <!-- Zone progress -->
+            <TextBlock Text="Current zone" FontSize="12" Foreground="Gray" Margin="0,0,0,4" />
+            <ProgressBar x:Name="ZoneProgress" Height="12" Value="0" Maximum="10"
+                         Foreground="#0078D4" Background="#E0E0E0" Margin="0,0,0,4" />
+            <TextBlock x:Name="ZoneProgressText" Text="0 / 10" FontSize="11" Foreground="Gray"
+                       HorizontalAlignment="Right" Margin="0,0,0,12" />
+
+            <!-- Tap feedback -->
+            <Border x:Name="FeedbackBorder" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6"
+                    Padding="12" Background="#FAFAFA" MinHeight="60" Margin="0,0,0,12">
+                <TextBlock x:Name="FeedbackText" Text="Tap the highlighted zone to begin."
+                           FontSize="13" Foreground="Gray" VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Guidance message -->
+            <TextBlock x:Name="GuidanceText" Text="Arm to start collecting taps"
+                       FontSize="11" Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,8" />
+
+            <!-- Controls -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="ArmButton" Content="Arm / Disarm"
+                        Padding="16,8" Margin="0,0,6,0" Click="OnToggleArm" />
+                <Button x:Name="CancelButton" Content="Cancel"
+                        Padding="16,8" Background="#E0E0E0" Margin="6,0,0,0" Click="OnCancel" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Complete screen -->
+        <StackPanel x:Name="CompletePanel" Visibility="Collapsed"
+                    VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="✅ Calibration Complete" FontSize="20" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" Margin="0,0,0,8" />
+            <TextBlock x:Name="CompleteSummary" Text="" FontSize="13" Foreground="Gray"
+                       HorizontalAlignment="Center" Margin="0,0,0,24" />
+            <Button Content="Go to Desk" Padding="24,10" Background="#0078D4" Foreground="White"
+                    HorizontalAlignment="Center" Click="OnGoToDesk" />
+        </StackPanel>
+    </Grid>
+</UserControl>
