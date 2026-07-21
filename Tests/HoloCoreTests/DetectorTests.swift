@@ -25,6 +25,123 @@ final class DetectorTests: XCTestCase {
         XCTAssertGreaterThan(events[0].onsetOffset, 0)
     }
 
+    func testLateOnsetInLargeHostBufferStaysInsideAnalysisWindow() {
+        // macOS can deliver ~100 ms buffers no matter what we request.
+        // We want to make it so a tap near the end of a buffer still gets registered.
+        let sampleRate = 48_000.0
+        let detector = StreamingTapDetector(
+            sampleRate: sampleRate,
+            channelCount: 1,
+            warmUpDuration: 0
+        )
+        var events: [DetectedTap] = []
+        for _ in 0..<40 {
+            events += detector.process(channels: [Array(repeating: 0.0004, count: 512)])
+        }
+        XCTAssertTrue(events.isEmpty)
+
+        var large = Array(repeating: Float(0.0004), count: 4_800)
+        addTapBurst(to: &large, at: 4_600, sampleRate: sampleRate)
+        events += detector.process(channels: [large])
+        for _ in 0..<10 {
+            events += detector.process(channels: [Array(repeating: 0.0002, count: 512)])
+        }
+
+        XCTAssertEqual(events.count, 1, "A tap late in a large host buffer must still be emitted")
+        guard let event = events.first else { return }
+        XCTAssertEqual(event.channels[0].count, detector.analysisWindowSamples)
+        XCTAssertEqual(event.onsetOffset, detector.preRollSamples)
+
+        let samples = event.channels[0]
+        let peakIndex = samples.indices.max { abs(samples[$0]) < abs(samples[$1]) } ?? 0
+        XCTAssertGreaterThan(
+            abs(samples[peakIndex]), 0.1,
+            "The emitted window must contain the tap itself, not just pre-tap audio"
+        )
+        XCTAssertLessThanOrEqual(
+            abs(peakIndex - event.onsetOffset), 4,
+            "The tap's raw peak must sit at the reported onset offset"
+        )
+    }
+
+    func testOnsetOffsetIsIndependentOfPositionInDeliveredBuffer() {
+        // The same tap, early or late in a buffer, must land at the same
+        // offset — otherwise features learn buffer timing, not the tap.
+        let sampleRate = 48_000.0
+        var offsets: [Int] = []
+
+        for (bufferSize, tapIndex) in [(512, 120), (4_800, 4_600)] {
+            let detector = StreamingTapDetector(
+                sampleRate: sampleRate,
+                channelCount: 1,
+                warmUpDuration: 0
+            )
+            var events: [DetectedTap] = []
+            for _ in 0..<40 {
+                events += detector.process(channels: [Array(repeating: 0.0004, count: 512)])
+            }
+            var buffer = Array(repeating: Float(0.0004), count: bufferSize)
+            addTapBurst(to: &buffer, at: tapIndex, sampleRate: sampleRate)
+            events += detector.process(channels: [buffer])
+            for _ in 0..<10 {
+                events += detector.process(channels: [Array(repeating: 0.0002, count: 512)])
+            }
+            XCTAssertEqual(events.count, 1, "Tap at index \(tapIndex) of \(bufferSize) must be emitted")
+            offsets.append(events.first?.onsetOffset ?? -1)
+        }
+
+        XCTAssertEqual(
+            offsets.first, offsets.last,
+            "Onset offset must not depend on where the tap fell in the delivered buffer"
+        )
+    }
+
+    func testLateOnsetTrimKeepsChannelsAlignedSampleExact() {
+        // The trim must shorten every channel by the same amount — if it
+        // didn't, the interchannel delay feature would quietly break.
+        // So check that a known cross-channel lag survives.
+        let sampleRate = 48_000.0
+        let detector = StreamingTapDetector(
+            sampleRate: sampleRate,
+            channelCount: 2,
+            warmUpDuration: 0
+        )
+        var events: [DetectedTap] = []
+        let quiet = Array(repeating: Float(0.0004), count: 512)
+        for _ in 0..<40 {
+            events += detector.process(channels: [quiet, quiet])
+        }
+        XCTAssertTrue(events.isEmpty)
+
+        let interchannelLag = 3
+        var left = Array(repeating: Float(0.0004), count: 4_800)
+        var right = left
+        addTapBurst(to: &left, at: 4_600, sampleRate: sampleRate)
+        addTapBurst(to: &right, at: 4_600 + interchannelLag, sampleRate: sampleRate)
+        events += detector.process(channels: [left, right])
+        for _ in 0..<10 {
+            let calm = Array(repeating: Float(0.0002), count: 512)
+            events += detector.process(channels: [calm, calm])
+        }
+
+        XCTAssertEqual(events.count, 1)
+        guard let event = events.first else { return }
+        XCTAssertEqual(event.channels.count, 2)
+        XCTAssertEqual(event.channels[0].count, detector.analysisWindowSamples)
+        XCTAssertEqual(event.channels[1].count, detector.analysisWindowSamples)
+
+        let peaks = event.channels.map { samples in
+            samples.indices.max { abs(samples[$0]) < abs(samples[$1]) } ?? 0
+        }
+        XCTAssertGreaterThan(abs(event.channels[0][peaks[0]]), 0.1)
+        XCTAssertGreaterThan(abs(event.channels[1][peaks[1]]), 0.1)
+        XCTAssertLessThanOrEqual(abs(peaks[0] - event.onsetOffset), 4)
+        XCTAssertEqual(
+            peaks[1] - peaks[0], interchannelLag,
+            "Trimming must remove the same leading sample count from every channel"
+        )
+    }
+
     func testDetectorHonorsRefractoryPeriod() {
         let detector = StreamingTapDetector(
             sampleRate: 48_000,
@@ -135,6 +252,17 @@ final class DetectorTests: XCTestCase {
         }
 
         XCTAssertTrue(events.isEmpty, "A plosive followed by voiced energy must not be emitted as a tap")
+    }
+
+    /// A short burst shaped like a real fingertip tap, with enough energy
+    /// to stay detectable even when spread across a ~100 ms buffer.
+    private func addTapBurst(to buffer: inout [Float], at start: Int, sampleRate: Double) {
+        for index in 0..<min(200, buffer.count - start) {
+            let time = Double(index) / sampleRate
+            let impact = 0.35 * exp(-time * 2_100) * cos(2 * Double.pi * 1_900 * time)
+            let resonance = 0.11 * exp(-time * 240) * sin(2 * Double.pi * 620 * time)
+            buffer[start + index] += Float(impact + resonance)
+        }
     }
 
     private func backgroundChunk(generator: inout DeterministicNoise) -> [Float] {
