@@ -1,45 +1,20 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
-let package = Package(
+var package = Package(
     name: "Holo",
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "HoloCore", targets: ["HoloCore"]),
-        .executable(name: "HoloSoak", targets: ["HoloSoak"]),
-        .executable(name: "HoloDaemon", targets: ["HoloDaemon"]),
-        .executable(name: "HoloUI", targets: ["HoloUI"])
+        .executable(name: "HoloSoak", targets: ["HoloSoak"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/rhx/SwiftGtk.git", branch: "main")
-    ],
+    dependencies: [],
     targets: [
-        .systemLibrary(
-            name: "CPulseAudio",
-            pkgConfig: "libpulse-simple",
-            providers: [
-                .apt(["libpulse-dev"])
-            ]
-        ),
         .target(name: "HoloCore", path: "Sources/HoloCore"),
         .executableTarget(
             name: "HoloSoak",
             dependencies: ["HoloCore"],
             path: "Sources/HoloSoak"
-        ),
-        .executableTarget(
-            name: "HoloDaemon",
-            dependencies: ["HoloCore", "CPulseAudio"],
-            path: "Sources/HoloDaemon"
-        ),
-        .executableTarget(
-            name: "HoloUI",
-            dependencies: [
-                "HoloCore",
-                "CPulseAudio",
-                .product(name: "Gtk", package: "SwiftGtk")
-            ],
-            path: "Sources/HoloUI"
         ),
         .testTarget(
             name: "HoloCoreTests",
@@ -49,3 +24,37 @@ let package = Package(
     ]
 )
 
+#if os(Linux)
+package.dependencies.append(
+    .package(url: "https://github.com/rhx/SwiftGtk.git", branch: "main")
+)
+
+package.products.append(contentsOf: [
+    .executable(name: "HoloDaemon", targets: ["HoloDaemon"]),
+    .executable(name: "HoloUI", targets: ["HoloUI"])
+])
+
+package.targets.append(contentsOf: [
+    .systemLibrary(
+        name: "CPulseAudio",
+        pkgConfig: "libpulse-simple",
+        providers: [
+            .apt(["libpulse-dev"])
+        ]
+    ),
+    .executableTarget(
+        name: "HoloDaemon",
+        dependencies: ["HoloCore", "CPulseAudio"],
+        path: "Sources/HoloDaemon"
+    ),
+    .executableTarget(
+        name: "HoloUI",
+        dependencies: [
+            "HoloCore",
+            "CPulseAudio",
+            .product(name: "Gtk", package: "SwiftGtk")
+        ],
+        path: "Sources/HoloUI"
+    )
+])
+#endif
