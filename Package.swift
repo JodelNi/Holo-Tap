@@ -7,7 +7,11 @@ let package = Package(
     products: [
         .library(name: "HoloCore", targets: ["HoloCore"]),
         .executable(name: "HoloSoak", targets: ["HoloSoak"]),
-        .executable(name: "HoloDaemon", targets: ["HoloDaemon"])
+        .executable(name: "HoloDaemon", targets: ["HoloDaemon"]),
+        .executable(name: "HoloUI", targets: ["HoloUI"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/rhx/SwiftGtk.git", branch: "main")
     ],
     targets: [
         .systemLibrary(
@@ -27,6 +31,15 @@ let package = Package(
             name: "HoloDaemon",
             dependencies: ["HoloCore", "CPulseAudio"],
             path: "Sources/HoloDaemon"
+        ),
+        .executableTarget(
+            name: "HoloUI",
+            dependencies: [
+                "HoloCore",
+                "CPulseAudio",
+                .product(name: "Gtk", package: "SwiftGtk")
+            ],
+            path: "Sources/HoloUI"
         ),
         .testTarget(
             name: "HoloCoreTests",

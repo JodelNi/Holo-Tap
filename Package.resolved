@@ -1,0 +1,149 @@
+{
+  "pins" : [
+    {
+      "identity" : "gir2swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/gir2swift.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "e2b894e3ba0197d7c2ebe1cde62e5c1faa404b75"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "957954da20c49873cde3ea56352448a2ec63fdaa",
+        "version" : "1.7.2"
+      }
+    },
+    {
+      "identity" : "swiftatk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftAtk.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "acaaa7fabfa94242ca896ad4fb957ed4c6dd18e3"
+      }
+    },
+    {
+      "identity" : "swiftcairo",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftCairo.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "87cd2aa586853fbeed192a42455fc43e9289b605"
+      }
+    },
+    {
+      "identity" : "swiftgdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftGdk.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "6ce71a6d51dd5aee942d9c4499a6e6083adb1188"
+      }
+    },
+    {
+      "identity" : "swiftgdkpixbuf",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftGdkPixbuf.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a0fee7dbaeca5f954b7bc04ae7996ed62c10c8c1"
+      }
+    },
+    {
+      "identity" : "swiftgio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftGIO.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "9a2ee26f08383d489988a837006992323b005bec"
+      }
+    },
+    {
+      "identity" : "swiftglib",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftGLib.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "66d258cea8b7c2f870f9c4dea543c4bd7ef04d08"
+      }
+    },
+    {
+      "identity" : "swiftgmodule",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftGModule.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "eecf947483b81361a1ff242b606d581358963a15"
+      }
+    },
+    {
+      "identity" : "swiftgobject",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftGObject.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a959fc96fe441048c71972a6708ef9fea22ccbb6"
+      }
+    },
+    {
+      "identity" : "swiftgtk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftGtk.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "f6b218be2ebbaba6cc7bb3b743f986b5318a89b3"
+      }
+    },
+    {
+      "identity" : "swiftharfbuzz",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftHarfBuzz.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "c699025869c261447c5ed02f6d650a1d21b81d83"
+      }
+    },
+    {
+      "identity" : "swiftlibxml",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftLibXML.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "35dea8fe9a65a8971eb5fde906fd41b07d855d6a"
+      }
+    },
+    {
+      "identity" : "swiftpango",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftPango.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "1670dc5109759fe53beaaa1aac2a77e131735500"
+      }
+    },
+    {
+      "identity" : "swiftpangocairo",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rhx/SwiftPangoCairo.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "0318374a18fc8ac183ad906d83df5b19c9e03f48"
+      }
+    },
+    {
+      "identity" : "yams",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jpsim/Yams.git",
+      "state" : {
+        "revision" : "9ff1cc9327586db4e0c8f46f064b6a82ec1566fa",
+        "version" : "4.0.6"
+      }
+    }
+  ],
+  "version" : 2
+}
