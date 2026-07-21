@@ -56,9 +56,13 @@ enum Radix2FFT {
             length <<= 1
         }
 
-        return (0...(size / 2)).map { index in
-            (real[index] * real[index] + imaginary[index] * imaginary[index]) / Double(size)
+        var power = Array(repeating: 0.0, count: size / 2 + 1)
+        for index in power.indices {
+            let realComponent = real[index]
+            let imaginaryComponent = imaginary[index]
+            power[index] = (realComponent * realComponent + imaginaryComponent * imaginaryComponent) / Double(size)
         }
+        return power
     }
 
     static func nextPowerOfTwo(_ value: Int) -> Int {
@@ -67,4 +71,3 @@ enum Radix2FFT {
         return result
     }
 }
-

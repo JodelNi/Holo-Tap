@@ -92,7 +92,7 @@ struct DiagnosticsView: View {
                 Section("Privacy and debug audio") {
                     Toggle("Retain 90 ms debug recordings", isOn: Binding(
                         get: { model.debugRecordingEnabled },
-                        set: model.setDebugRecordingEnabled
+                        set: { model.setDebugRecordingEnabled($0) }
                     ))
                     Text(model.debugRecordingEnabled
                          ? "Raw WAV windows are being saved locally until you delete them."
@@ -119,7 +119,7 @@ struct DiagnosticsView: View {
         .padding(36)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(HoloTheme.background)
-        .onChange(of: model.benchmarkSession != nil) { _, running in
+        .onCompatibleChange(of: model.benchmarkSession != nil) { _, running in
             if running { showApproachLab = true }
         }
     }

@@ -7,7 +7,7 @@ struct EvaluationView: View {
     var body: some View {
         Group {
             if model.selectedProfile == nil {
-                ContentUnavailableView {
+                HoloUnavailableView {
                     Label("No Desk Profile", systemImage: "checkmark.seal")
                 } description: {
                     Text("Calibrate the four desk zones before evaluating them.")

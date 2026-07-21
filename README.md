@@ -33,8 +33,8 @@ The requirement-by-requirement evidence ledger is in [ACCEPTANCE.md](ACCEPTANCE.
 
 ## Requirements
 
-- macOS 14 or later.
-- Xcode 26 is recommended for the current project. The app uses Liquid Glass button styles on macOS 26 and native bordered controls on older supported systems.
+- macOS 13 or later. Compatibility fallbacks are kept to cater for older Macs, while newer systems use their native controls where available.
+- Xcode 15.1 or later. Xcode 26 is recommended when available; the app uses Liquid Glass button styles on macOS 26 and native bordered controls on older supported systems.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) to regenerate `Holo.xcodeproj` from `project.yml`.
 - A MacBook with its built-in microphone selected. External inputs are rejected rather than silently changing the calibrated signal path.
 - Active and Hybrid sensing additionally require MacBook Speakers as the selected output. Passive sensing does not emit a probe.

@@ -90,12 +90,16 @@ struct RootView: View {
             }
 
             if model.selectedProfile == nil && model.guidedSection == nil {
-                Button(action: model.openSetup) {
+                Button {
+                    model.openSetup()
+                } label: {
                     Label("Set Up Desk", systemImage: "scope")
                 }
                 .help("Calibrate the four zones before listening")
             } else {
-                Button(action: model.togglePause) {
+                Button {
+                    model.togglePause()
+                } label: {
                     Label(
                         model.audio.isListening ? "Pause" : "Resume",
                         systemImage: model.audio.isListening ? "pause.fill" : "play.fill"

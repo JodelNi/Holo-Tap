@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Holo",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v13)],
     products: [
         .library(name: "HoloCore", targets: ["HoloCore"]),
         .executable(name: "HoloSoak", targets: ["HoloSoak"])
@@ -22,4 +22,3 @@ let package = Package(
         )
     ]
 )
-

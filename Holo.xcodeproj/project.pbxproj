@@ -21,8 +21,11 @@
 		3F56A196EB5FB45FFCBFC38C /* EvaluationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3398CF16BF083A03B5897A9 /* EvaluationView.swift */; };
 		49B637BE1448B5A1FE8FAC1F /* LocalActionPlanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED798B1FD296DDD1C10BEB25 /* LocalActionPlanning.swift */; };
 		501C86E4939EBA7FD4A80340 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 138781D29C8F493B4BEBF347 /* AppModel.swift */; };
+		51E6A7DAACBB438C9D30C5A0 /* Compatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FF21B7AD4164E98A8545183 /* Compatibility.swift */; };
 		53B53A46371B34216E082389 /* AudioHardwarePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1637550E7F75A6E7BFCE8862 /* AudioHardwarePolicyTests.swift */; };
+		547114D94C6141308AF38349 /* FFTTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 902892881D6C4EB78D348E4A /* FFTTests.swift */; };
 		5A6F55DFDAE55D36753BC3BF /* AudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634844CB07B4E483B2423FEB /* AudioCaptureService.swift */; };
+		5E0210E5B3AB4AC0A0A27A54 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2146B4C4DF34EC7A6F05DE6 /* Assets.xcassets */; };
 		5B7C275226A76CE84A986426 /* DetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89EDE7CBFB7D30EF016984BB /* DetectorTests.swift */; };
 		5BA2A1CF3E0DCE6A8C4F698A /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E202AF9AF65D4A6DAD062BA /* PersistenceTests.swift */; };
 		5CFC182DD58D4A037DC6CCC3 /* LocalActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC2F285F73EF896D8A3EF6EF /* LocalActions.swift */; };
@@ -142,6 +145,7 @@
 		4E98E621F82CBBE59FD3A41C /* LocalActionPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalActionPlannerTests.swift; sourceTree = "<group>"; };
 		50AC2C28BEB4F4997E61E917 /* AsyncBooleanRequestGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncBooleanRequestGateTests.swift; sourceTree = "<group>"; };
 		5D9A4872F0AF435869BAE285 /* AudioHardwarePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioHardwarePolicy.swift; sourceTree = "<group>"; };
+		5FF21B7AD4164E98A8545183 /* Compatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compatibility.swift; sourceTree = "<group>"; };
 		634844CB07B4E483B2423FEB /* AudioCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureService.swift; sourceTree = "<group>"; };
 		69E4D6C427B2356EFA9861AD /* GuidedSessions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedSessions.swift; sourceTree = "<group>"; };
 		786309E60E647EA3FC80EFEC /* SignalModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalModels.swift; sourceTree = "<group>"; };
@@ -152,9 +156,11 @@
 		8DD162A27694A39536B08B76 /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
 		8E1D1C9C0CD80F11D490685E /* HoloTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoloTheme.swift; sourceTree = "<group>"; };
 		8E202AF9AF65D4A6DAD062BA /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
+		902892881D6C4EB78D348E4A /* FFTTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFTTests.swift; sourceTree = "<group>"; };
 		9F71702ABD6F816E14DCE97F /* HoloCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HoloCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9FE34803263D649D4BCD0736 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
 		A36F157ED33FCF6F689804F7 /* SystemAudioRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioRoute.swift; sourceTree = "<group>"; };
+		A2146B4C4DF34EC7A6F05DE6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A905A97F45BFE70DF240318C /* ClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassifierTests.swift; sourceTree = "<group>"; };
 		B8276F53CD4BAD0E4134BE5E /* LiveSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSurfaceView.swift; sourceTree = "<group>"; };
 		C1C797ED25B4E0F506DC4F10 /* FFT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFT.swift; sourceTree = "<group>"; };
@@ -220,6 +226,7 @@
 				A905A97F45BFE70DF240318C /* ClassifierTests.swift */,
 				89EDE7CBFB7D30EF016984BB /* DetectorTests.swift */,
 				3B4A042398108C34F1A28654 /* EvaluationTests.swift */,
+				902892881D6C4EB78D348E4A /* FFTTests.swift */,
 				FC892138F3ABE811DD0C9B9E /* FeatureExtractorTests.swift */,
 				0861DC8B2455D59B07317D16 /* GuidedCaptureQualityTests.swift */,
 				E16C01A483EE0B2355493E69 /* GuidedSessionTests.swift */,
@@ -310,6 +317,8 @@
 				138781D29C8F493B4BEBF347 /* AppModel.swift */,
 				634844CB07B4E483B2423FEB /* AudioCaptureService.swift */,
 				06C2F6E8443039D83D1F6B16 /* CalibrationView.swift */,
+				5FF21B7AD4164E98A8545183 /* Compatibility.swift */,
+				A2146B4C4DF34EC7A6F05DE6 /* Assets.xcassets */,
 				4B9EA1642DC1B50D9B998D42 /* DeskMapView.swift */,
 				8DD162A27694A39536B08B76 /* DiagnosticsView.swift */,
 				E3398CF16BF083A03B5897A9 /* EvaluationView.swift */,
@@ -396,6 +405,7 @@
 			buildPhases = (
 				526638B757E6B22CE4A766D6 /* Sources */,
 				E0BA8B99092B27F3E7081993 /* Frameworks */,
+				F1F2593787F94F6EAD71182A /* Resources */,
 				E3601B2DC9870CEA09070562 /* Embed Frameworks */,
 			);
 			buildRules = (
@@ -468,6 +478,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		F1F2593787F94F6EAD71182A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E0210E5B3AB4AC0A0A27A54 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		526638B757E6B22CE4A766D6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -476,6 +497,7 @@
 				501C86E4939EBA7FD4A80340 /* AppModel.swift in Sources */,
 				5A6F55DFDAE55D36753BC3BF /* AudioCaptureService.swift in Sources */,
 				D9B962FDD8C65B65A750C49D /* CalibrationView.swift in Sources */,
+				51E6A7DAACBB438C9D30C5A0 /* Compatibility.swift in Sources */,
 				F8CEDE2EDD114596B3B207F7 /* DeskMapView.swift in Sources */,
 				CEADD26B0B8977B7026FF4DE /* DiagnosticsView.swift in Sources */,
 				3F56A196EB5FB45FFCBFC38C /* EvaluationView.swift in Sources */,
@@ -517,6 +539,7 @@
 				FC9A309AC7E561E7421C4FBA /* ClassifierTests.swift in Sources */,
 				5B7C275226A76CE84A986426 /* DetectorTests.swift in Sources */,
 				FF12D620E6DF5A4DFABC3A5F /* EvaluationTests.swift in Sources */,
+				547114D94C6141308AF38349 /* FFTTests.swift in Sources */,
 				00393C6A55E3BC29CE9658DE /* FeatureExtractorTests.swift in Sources */,
 				B546EC42C1EB50E7B4D27FE7 /* GuidedCaptureQualityTests.swift in Sources */,
 				3903B8C21FF3EB27EB292FBF /* GuidedSessionTests.swift in Sources */,
@@ -739,7 +762,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -868,7 +891,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
