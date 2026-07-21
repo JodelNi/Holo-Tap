@@ -115,10 +115,23 @@ public final class StreamingTapDetector {
         if isImpulse {
             let crossing = onsetSignal.firstIndex { abs(Double($0)) >= peakThreshold } ?? 0
             capture = preRoll
-            captureOnsetOffset = (preRoll.first?.count ?? 0) + crossing
+            appendToCapture(channels)
+            // macOS can hand us ~100 ms buffers no matter what size we asked
+            // for. If we kept the whole buffer, a tap near its end would fall
+            // past the fixed-length window and we'd emit only pre-tap audio.
+            // So trim the front until the onset sits exactly preRollSamples
+            // in — every window then has the tap at the same spot.
+            let combinedOnset = (preRoll.first?.count ?? 0) + crossing
+            let leadingDrop = max(combinedOnset - preRollSamples, 0)
+            if leadingDrop > 0, var current = capture {
+                for index in current.indices {
+                    current[index].removeFirst(min(leadingDrop, current[index].count))
+                }
+                capture = current
+            }
+            captureOnsetOffset = combinedOnset - leadingDrop
             captureStreamIndex = totalSamples + Int64(crossing)
             captureNoiseFloor = noiseFloorRMS
-            appendToCapture(channels)
             if let event = completeCaptureIfReady() {
                 return [event]
             }
