@@ -200,7 +200,7 @@ Most recent automated check on macOS 26.5.2:
 
 - Debug and Release app builds: passed with no source warnings.
 - Static analyzer: passed.
-- Unit tests: 68 passed, 0 failed, 0 skipped.
+- Unit tests: 80 passed, 0 failed, 0 skipped (71 HoloCoreTests, 9 HoloAppTests).
 - Accelerated mixed four-zone synthetic soak at the production confidence threshold: 5,000 events in 0.8 seconds; 4,500/4,500 zone taps correct and 500/500 weak, noisy, clipped, schema-mismatched, or out-of-distribution challenges rejected; zero false accepts; RSS 6.7 → 7.0 MB (+0.3 MB).
 - Earlier all-positive 30-minute synthetic wall-clock soak: 17,186 events; 17,186 correct, 0 rejected, 0 wrong; RSS 6.7 → 6.4 MB (−0.3 MB). This predates the current four-zone topology and is retained only as historical stability evidence.
 - Read-only route check: MacBook Pro Microphone and MacBook Pro Speakers both reported as built-in; Passive, Active, and Hybrid ready.
