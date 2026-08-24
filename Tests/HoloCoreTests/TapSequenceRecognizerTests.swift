@@ -206,6 +206,63 @@ final class TapSequenceRecognizerTests: XCTestCase {
         XCTAssertEqual(outcome.pendingZone, .leftTop)
     }
 
+    // MARK: - The user-adjustable window
+
+    func testClampingKeepsTheWindowInsideTheSupportedRange() {
+        let range = TapSequenceRecognizer.windowRangeSeconds
+        XCTAssertEqual(TapSequenceRecognizer.clampedWindowSeconds(0.01), range.lowerBound)
+        XCTAssertEqual(TapSequenceRecognizer.clampedWindowSeconds(-3), range.lowerBound)
+        XCTAssertEqual(TapSequenceRecognizer.clampedWindowSeconds(9.5), range.upperBound)
+        XCTAssertEqual(TapSequenceRecognizer.clampedWindowSeconds(range.lowerBound), range.lowerBound)
+        XCTAssertEqual(TapSequenceRecognizer.clampedWindowSeconds(range.upperBound), range.upperBound)
+        XCTAssertEqual(TapSequenceRecognizer.clampedWindowSeconds(0.6), 0.6)
+    }
+
+    func testNonFiniteWindowFallsBackToTheDefaultRatherThanABound() {
+        for value in [Double.nan, .infinity, -.infinity] {
+            XCTAssertEqual(
+                TapSequenceRecognizer.clampedWindowSeconds(value),
+                TapSequenceRecognizer.defaultWindowSeconds
+            )
+        }
+    }
+
+    func testTheDefaultWindowSitsInsideTheAdjustableRange() {
+        XCTAssertTrue(
+            TapSequenceRecognizer.windowRangeSeconds
+                .contains(TapSequenceRecognizer.defaultWindowSeconds)
+        )
+        // The floor has to stay above the detector's own limit: a 140 ms refractory
+        // after each 90 ms analysis window means no second tap before ~230 ms.
+        XCTAssertGreaterThan(TapSequenceRecognizer.windowRangeSeconds.lowerBound, 0.23)
+    }
+
+    func testAShortenedWindowRejectsAPairTheDefaultWouldHaveAccepted() {
+        let bound: Set<TapGesture> = [doubleLeftRear]
+        let prefixes: Set<DeskZone> = [.leftTop]
+
+        var tight = TapSequenceRecognizer(windowSeconds: 0.25)
+        _ = tight.ingest(zone: .leftTop, hostTimeSeconds: 1, comboPrefixes: prefixes, boundGestures: bound)
+        let tightOutcome = tight.ingest(
+            zone: .leftTop,
+            hostTimeSeconds: 1.4,
+            comboPrefixes: prefixes,
+            boundGestures: bound
+        )
+        XCTAssertEqual(tightOutcome.gestures, [.single(.leftTop)])
+        XCTAssertEqual(tightOutcome.pendingZone, .leftTop)
+
+        var relaxed = TapSequenceRecognizer(windowSeconds: 1.0)
+        _ = relaxed.ingest(zone: .leftTop, hostTimeSeconds: 1, comboPrefixes: prefixes, boundGestures: bound)
+        let relaxedOutcome = relaxed.ingest(
+            zone: .leftTop,
+            hostTimeSeconds: 1.4,
+            comboPrefixes: prefixes,
+            boundGestures: bound
+        )
+        XCTAssertEqual(relaxedOutcome.gestures, [doubleLeftRear])
+    }
+
     // MARK: - Gesture value semantics
 
     func testGestureRejectsLengthsOutsideOneToTwo() {

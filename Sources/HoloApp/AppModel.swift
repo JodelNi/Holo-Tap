@@ -52,6 +52,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var activeZone: DeskZone?
     /// A tap held back while Holo waits to see whether a second tap completes a combo.
     @Published private(set) var pendingComboZone: DeskZone?
+    /// How long that tap is held. One value for every combo on every profile.
+    @Published private(set) var comboWindowSeconds = TapSequenceRecognizer.defaultWindowSeconds
     @Published private(set) var lastDecision: ClassificationDecision?
     @Published private(set) var statusMessage = "Ready to map your desk"
     @Published private(set) var calibrationSession: CalibrationSession?
@@ -77,6 +79,7 @@ final class AppModel: ObservableObject {
     private let evaluationStore: EvaluationStore?
     private let comparisonStore: ApproachComparisonStore?
     private let debugStore: DebugRecordingStore?
+    private let preferencesStore: PreferencesStore?
     private let actionDispatcher = LocalActionDispatcher()
     private var recalibratingProfileID: UUID?
     private var calibrationAcceptAfter = Date.distantPast
@@ -113,6 +116,20 @@ final class AppModel: ObservableObject {
         catch {
             debugStore = nil
             startupErrors.append("Debug recordings: \(error.localizedDescription)")
+        }
+        do { preferencesStore = try PreferencesStore() }
+        catch {
+            preferencesStore = nil
+            startupErrors.append("Settings: \(error.localizedDescription)")
+        }
+
+        if let preferencesStore {
+            do {
+                comboWindowSeconds = try preferencesStore.load().comboWindowSeconds
+                recognizer.windowSeconds = comboWindowSeconds
+            } catch {
+                startupErrors.append("Settings: \(error.localizedDescription)")
+            }
         }
 
         if let debugStore {
@@ -658,6 +675,28 @@ final class AppModel: ObservableObject {
             guard let index = profile.combos.firstIndex(where: { $0.gesture == gesture }) else { return false }
             profile.combos[index].action = action
             return true
+        }
+    }
+
+    /// Changes the window every combo uses. A tap already being held was scheduled
+    /// against the previous window, so it is dropped rather than fired late or early.
+    @discardableResult
+    func setComboWindowSeconds(_ seconds: Double) -> Bool {
+        let clamped = TapSequenceRecognizer.clampedWindowSeconds(seconds)
+        guard clamped != comboWindowSeconds else { return true }
+        let previous = comboWindowSeconds
+        comboWindowSeconds = clamped
+        recognizer.windowSeconds = clamped
+        cancelPendingCombo()
+        do {
+            guard let preferencesStore else { throw HoloStorageError.unavailable("Settings") }
+            try preferencesStore.save(HoloPreferences(comboWindowSeconds: clamped))
+            return true
+        } catch {
+            comboWindowSeconds = previous
+            recognizer.windowSeconds = previous
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 

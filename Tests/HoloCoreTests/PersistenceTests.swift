@@ -275,6 +275,60 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(try store.load()?.profileID, profileID)
     }
 
+    // MARK: - Combo window preference
+
+    func testComboWindowRoundTrips() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = try PreferencesStore(fileURL: url)
+        try store.save(HoloPreferences(comboWindowSeconds: 0.30))
+        XCTAssertEqual(try store.load().comboWindowSeconds, 0.30, accuracy: 1e-9)
+    }
+
+    func testMissingPreferencesFileLoadsTheDefaultWindow() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).json")
+        let store = try PreferencesStore(fileURL: url)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertEqual(
+            try store.load().comboWindowSeconds,
+            TapSequenceRecognizer.defaultWindowSeconds,
+            accuracy: 1e-9
+        )
+    }
+
+    func testStoredWindowOutsideTheSupportedRangeLoadsClamped() throws {
+        let range = TapSequenceRecognizer.windowRangeSeconds
+        // A window under the detector's floor would make every combo unreachable, so a
+        // file that asks for one is corrected rather than obeyed.
+        let cases: [(String, Double)] = [
+            ("0.01", range.lowerBound),
+            ("9.5", range.upperBound),
+            ("0", range.lowerBound)
+        ]
+        for (stored, expected) in cases {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(UUID().uuidString).json")
+            defer { try? FileManager.default.removeItem(at: url) }
+            try Data(#"{"comboWindowSeconds":\#(stored)}"#.utf8).write(to: url, options: .atomic)
+            let loaded = try PreferencesStore(fileURL: url).load()
+            XCTAssertEqual(loaded.comboWindowSeconds, expected, accuracy: 1e-9, "stored \(stored)")
+        }
+    }
+
+    func testPreferencesFileMissingTheWindowKeyLoadsTheDefault() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data("{}".utf8).write(to: url, options: .atomic)
+        XCTAssertEqual(
+            try PreferencesStore(fileURL: url).load().comboWindowSeconds,
+            TapSequenceRecognizer.defaultWindowSeconds,
+            accuracy: 1e-9
+        )
+    }
+
     func testCombosRoundTripAndResolveTheirActions() throws {
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: temporary) }

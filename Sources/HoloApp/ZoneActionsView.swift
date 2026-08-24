@@ -7,6 +7,9 @@ struct ZoneActionsView: View {
     @ObservedObject var model: AppModel
     @State private var confirmDelete = false
     @State private var isAddingCombo = false
+    /// Mirrors the model while the slider is being dragged. The setting is written once
+    /// on release rather than on every frame of the drag.
+    @State private var windowDraft = TapSequenceRecognizer.defaultWindowSeconds
 
     var body: some View {
         Group {
@@ -79,6 +82,10 @@ struct ZoneActionsView: View {
         } message: {
             Text("The saved calibration and its four actions will be removed.")
         }
+        .onAppear { windowDraft = model.comboWindowSeconds }
+        .onChange(of: model.comboWindowSeconds) { _, newValue in
+            windowDraft = newValue
+        }
         .sheet(isPresented: $isAddingCombo) {
             AddComboSheet(existingIDs: Set(model.selectedProfile?.combos.map(\.id) ?? [])) { gesture in
                 model.addCombo(gesture)
@@ -95,7 +102,7 @@ struct ZoneActionsView: View {
             title: configuration.zone.positionName,
             subtitle: configuration.zone.isLeft ? "Left side" : "Right side",
             accessibilityName: "\(configuration.zone.positionName), \(side) side",
-            note: beginsACombo ? "Waits for a second tap" : nil,
+            note: beginsACombo ? "Waits up to \(Self.secondsLabel(model.comboWindowSeconds))" : nil,
             labelWidth: 112,
             action: configuration.action,
             onChange: { action in
@@ -139,15 +146,56 @@ struct ZoneActionsView: View {
                 }
             }
 
+            // The timing control appears once there is a combo for it to govern. With
+            // none bound it would be a setting for nothing.
+            if !profile.combos.isEmpty {
+                LabeledContent {
+                    HStack(spacing: 12) {
+                        Slider(
+                            value: $windowDraft,
+                            in: TapSequenceRecognizer.windowRangeSeconds,
+                            step: 0.05
+                        ) { isDragging in
+                            // Committing on release keeps one drag to a single write, and
+                            // keeps a rejected write from fighting the user mid-gesture.
+                            // Snapping back afterwards covers a clamped or refused value
+                            // alike, so the readout never disagrees with what is in force.
+                            guard !isDragging else { return }
+                            model.setComboWindowSeconds(windowDraft)
+                            windowDraft = model.comboWindowSeconds
+                        }
+                        .frame(maxWidth: 260)
+                        .accessibilityLabel("Time allowed between the two taps of a combo")
+                        Text(Self.secondsLabel(windowDraft))
+                            .font(.callout.monospacedDigit())
+                            .frame(width: 54, alignment: .leading)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Time between taps")
+                            .font(.body.weight(.medium))
+                        Text("All combos")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(width: 168, alignment: .leading)
+                }
+                .padding(.vertical, 4)
+            }
+
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Button("Add Combo", systemImage: "plus") { isAddingCombo = true }
                     .holoSecondaryButton()
-                Text("Tap, pause about half a second, then tap again. A trackpad-speed double tap is too quick for Holo to hear as two taps.")
+                Text("Tap, pause, then tap again within \(Self.secondsLabel(model.comboWindowSeconds)). A trackpad-speed double tap is too quick for Holo to hear as two taps, which is why the shortest setting is \(Self.secondsLabel(TapSequenceRecognizer.windowRangeSeconds.lowerBound)).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    static func secondsLabel(_ seconds: Double) -> String {
+        String(format: "%.2f s", seconds)
     }
 
     private func sortedConfigurations(_ profile: HoloProfile, isLeft: Bool) -> [ZoneConfiguration] {

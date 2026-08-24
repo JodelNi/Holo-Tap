@@ -38,7 +38,7 @@ The recovered physical baseline, failure analysis, and controlled iteration prot
 - Passive tap acoustics, an optional active acoustic probe, and a hybrid mode.
 - Robust feature normalization, a regularized linear zone model backed by nearest-example novelty checks, ambiguity rejection, out-of-distribution rejection, and optional negative examples.
 - Per-profile actions: visual only, play a sound, copy or speak text, open a website, run a Shortcut, open an application or item, execute a shell command, or capture a screenshot. New zones default to visual-only until the user assigns a side effect.
-- Optional two-tap combos: the same zone twice, or two zones in order, bound to any of the same actions. Combos are added one at a time and a profile starts with none. Only a zone that begins a bound combo waits for a second tap, so a profile without combos dispatches exactly as before. The two taps are deliberate ones roughly half a second apart — the detector's refractory period means a trackpad-speed double tap is heard as a single tap.
+- Optional two-tap combos: the same zone twice, or two zones in order, bound to any of the same actions. Combos are added one at a time and a profile starts with none. Only a zone that begins a bound combo waits for a second tap, so a profile without combos dispatches exactly as before. The two taps are deliberate ones roughly half a second apart — the detector's refractory period means a trackpad-speed double tap is heard as a single tap. The time allowed between them is one adjustable setting shared by every combo.
 - Guided 60-tap held-out evaluation with per-zone accuracy, latency, rejected-tap counts, and a confusion matrix.
 - Saved evaluation history is restored after relaunch and scoped to the desk profile that produced it.
 - Signal diagnostics, labeled feature capture, approach comparison, JSON/CSV reports, and opt-in raw debug WAV capture.
@@ -116,9 +116,10 @@ Actions contains four single-tap rows grouped by side, plus a Combos section tha
 
 Add Combo binds a second tap to the first. Any ordered pair of zones is available, including the same zone twice, and each combo takes the same action kinds as a single tap.
 
-- The two taps are deliberate, roughly half a second apart. The detector holds a 140 ms refractory period after each 90 ms analysis window, so a second tap cannot be observed sooner than about 230 ms after the first. A trackpad-speed double tap is heard as one tap.
+- The two taps are deliberate, 0.45 s apart by default. The detector holds a 140 ms refractory period after each 90 ms analysis window, so a second tap cannot be observed sooner than about 230 ms after the first. A trackpad-speed double tap is heard as one tap.
 - Only a zone that begins a bound combo waits. Every other zone dispatches immediately, so binding no combos costs no latency anywhere. The single-tap row for such a zone is marked as waiting for a second tap.
-- A held tap shows on the desk map as waiting rather than accepted. If no second tap arrives within 450 ms, the held tap runs its own single-tap action.
+- Time between taps is a slider in the Combos section, adjustable from 0.25 s to 1.00 s. It is a single app-wide setting: every combo uses the same window, and the value follows you across desk profiles, because how fast you tap is a habit rather than a property of a desk. The 0.25 s floor is the detector's own limit — a shorter window would make combos unreachable. Changing the window drops any tap being held at that moment.
+- A held tap shows on the desk map as waiting rather than accepted. If no second tap arrives inside the window, the held tap runs its own single-tap action. The single-tap row of a zone that begins a combo states how long it now waits.
 - Both taps have to be classified correctly, so a combo is about as reliable as single-tap accuracy squared. The same zone twice is the more robust choice, because both taps come from one place on the desk.
 - Pausing, changing profile, or leaving Desk drops a held tap without running anything.
 

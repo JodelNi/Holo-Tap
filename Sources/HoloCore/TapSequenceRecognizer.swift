@@ -36,6 +36,24 @@ public struct TapSequenceRecognizer {
     /// deliberate taps about half a second apart, not a trackpad-speed double tap.
     public static let defaultWindowSeconds = 0.45
 
+    /// How far the window may be moved by the user.
+    ///
+    /// The lower bound is the detector's own floor rounded up: below about 230 ms a
+    /// second tap cannot be observed at all, so a shorter window would look like a
+    /// valid setting while making every combo unreachable. Past a second the wait on
+    /// every single tap in a combo's first zone stops reading as one gesture, and
+    /// unrelated taps begin pairing by accident.
+    public static let windowRangeSeconds: ClosedRange<Double> = 0.25...1.0
+
+    /// Forces any stored or entered value into the supported range. A non-finite value
+    /// becomes the default rather than the nearest bound, because it carries no
+    /// intent — it only ever arrives from a corrupt or hand-edited file, and letting
+    /// it through would produce a deadline that never arrives.
+    public static func clampedWindowSeconds(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultWindowSeconds }
+        return min(max(value, windowRangeSeconds.lowerBound), windowRangeSeconds.upperBound)
+    }
+
     public var windowSeconds: Double
 
     private var pending: (zone: DeskZone, hostTimeSeconds: Double)?
