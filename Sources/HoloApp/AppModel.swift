@@ -40,10 +40,18 @@ enum HoloStorageError: Error, LocalizedError {
 
 @MainActor
 final class AppModel: ObservableObject {
-    @Published var section: AppSection = .live
+    // Leaving the Desk surface abandons a half-finished combo rather than letting it
+    // complete on some later screen.
+    @Published var section: AppSection = .live {
+        didSet {
+            if section != .live { cancelPendingCombo() }
+        }
+    }
     @Published private(set) var profiles: [HoloProfile] = []
     @Published var selectedProfileID: UUID?
     @Published private(set) var activeZone: DeskZone?
+    /// A tap held back while Holo waits to see whether a second tap completes a combo.
+    @Published private(set) var pendingComboZone: DeskZone?
     @Published private(set) var lastDecision: ClassificationDecision?
     @Published private(set) var statusMessage = "Ready to map your desk"
     @Published private(set) var calibrationSession: CalibrationSession?
@@ -78,6 +86,9 @@ final class AppModel: ObservableObject {
     private var evaluationArmTask: Task<Void, Never>?
     private var benchmarkArmTask: Task<Void, Never>?
     private var activeZoneClearTask: Task<Void, Never>?
+    private var recognizer = TapSequenceRecognizer()
+    private var comboPendingTask: Task<Void, Never>?
+    private var heldTapConfidence: Double?
     private var pausedByUser = false
     private var cancellables: Set<AnyCancellable> = []
 
@@ -246,6 +257,7 @@ final class AppModel: ObservableObject {
         guard guidedSection == nil else { return }
         selectedProfileID = id
         activeZoneClearTask?.cancel()
+        cancelPendingCombo()
         activeZone = nil
         lastDecision = nil
         refreshLatestEvaluation()
@@ -624,14 +636,53 @@ final class AppModel: ObservableObject {
 
     @discardableResult
     func updateAction(for zone: DeskZone, action: ZoneActionConfiguration) -> Bool {
-        guard let profileIndex = profiles.firstIndex(where: { $0.id == selectedProfileID }),
-              let zoneIndex = profiles[profileIndex].zones.firstIndex(where: { $0.zone == zone }) else { return false }
+        saveSelectedProfile { profile in
+            guard let index = profile.zones.firstIndex(where: { $0.zone == zone }) else { return false }
+            profile.zones[index].action = action
+            return true
+        }
+    }
+
+    @discardableResult
+    func addCombo(_ gesture: TapGesture) -> Bool {
+        saveSelectedProfile { profile in
+            guard !profile.combos.contains(where: { $0.gesture == gesture }) else { return false }
+            profile.combos.append(ComboBinding(gesture: gesture))
+            return true
+        }
+    }
+
+    @discardableResult
+    func updateCombo(_ gesture: TapGesture, action: ZoneActionConfiguration) -> Bool {
+        saveSelectedProfile { profile in
+            guard let index = profile.combos.firstIndex(where: { $0.gesture == gesture }) else { return false }
+            profile.combos[index].action = action
+            return true
+        }
+    }
+
+    @discardableResult
+    func removeCombo(_ gesture: TapGesture) -> Bool {
+        saveSelectedProfile { profile in
+            let remaining = profile.combos.filter { $0.gesture != gesture }
+            guard remaining.count != profile.combos.count else { return false }
+            profile.combos = remaining
+            return true
+        }
+    }
+
+    /// Applies an edit to the selected profile and persists it, reverting the in-memory
+    /// copy if the write fails. A held tap is dropped because the set of zones that can
+    /// begin a combo may have just changed underneath it.
+    private func saveSelectedProfile(_ mutate: (inout HoloProfile) -> Bool) -> Bool {
+        guard let profileIndex = profiles.firstIndex(where: { $0.id == selectedProfileID }) else { return false }
         var updatedProfile = profiles[profileIndex]
-        updatedProfile.zones[zoneIndex].action = action
+        guard mutate(&updatedProfile) else { return false }
         do {
             guard let profileStore else { throw HoloStorageError.unavailable("Desk profile") }
             try profileStore.save(updatedProfile)
             profiles[profileIndex] = updatedProfile
+            cancelPendingCombo()
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -746,23 +797,99 @@ final class AppModel: ObservableObject {
         var decision = profile.classifier.predict(observation.feature)
         decision.processingLatencyMilliseconds = observation.processingLatencyMilliseconds
         present(decision)
-        if let zone = decision.zone {
-            if LocalActionDispatchPolicy.allowsAutomaticDispatch(
-                for: decision,
-                isDeskActive: section == .live
-            ) {
-                statusMessage = "\(zone.displayName) • \(Int(decision.confidence * 100))% confidence"
-                do { try actionDispatcher.perform(profile.action(for: zone)) }
-                catch {
-                    statusMessage = "\(zone.displayName) accepted • action failed"
-                    errorMessage = error.localizedDescription
-                }
-            } else {
-                statusMessage = "\(zone.displayName) detected • actions paused outside Desk"
-            }
-        } else {
+        guard let zone = decision.zone else {
             statusMessage = "Rejected • \(decision.rejectionReason?.displayName ?? "low confidence")"
+            return
         }
+        guard LocalActionDispatchPolicy.allowsAutomaticDispatch(
+            for: decision,
+            isDeskActive: section == .live
+        ) else {
+            statusMessage = "\(zone.displayName) detected • actions paused outside Desk"
+            return
+        }
+        // Only accepted, dispatchable decisions reach the recognizer, so a rejected
+        // event between two combo taps neither breaks the combo nor restarts its
+        // window. It simply did not happen, exactly as before.
+        let outcome = recognizer.ingest(
+            zone: zone,
+            hostTimeSeconds: observation.eventHostTimeSeconds,
+            comboPrefixes: profile.comboPrefixZones,
+            boundGestures: profile.boundGestures
+        )
+        apply(outcome, profile: profile, confidence: decision.confidence)
+    }
+
+    private func apply(
+        _ outcome: TapSequenceRecognizer.Outcome,
+        profile: HoloProfile,
+        confidence: Double
+    ) {
+        comboPendingTask?.cancel()
+        comboPendingTask = nil
+        pendingComboZone = nil
+        let flushedConfidence = heldTapConfidence
+        heldTapConfidence = nil
+
+        for (index, gesture) in outcome.gestures.enumerated() {
+            // A tap that was held and found no partner is always emitted first, and
+            // its confidence was measured by the earlier decision rather than the one
+            // that flushed it.
+            let measured = index == 0 ? (flushedConfidence ?? confidence) : confidence
+            dispatch(gesture, profile: profile, confidence: measured)
+        }
+
+        guard let zone = outcome.pendingZone, let deadline = outcome.pendingDeadlineSeconds else {
+            return
+        }
+        // A held tap is shown as waiting, not as accepted: the accepted highlight is
+        // reserved for the moment an action actually runs.
+        highlight(nil)
+        pendingComboZone = zone
+        heldTapConfidence = confidence
+        statusMessage = "\(zone.displayName) • waiting for a second tap"
+        // The window is measured from the tap's onset on the audio clock, so the
+        // remaining wall-clock wait is already shorter than the full window by the
+        // time detection and classification have finished.
+        let remaining = min(
+            max(deadline - ProcessInfo.processInfo.systemUptime, 0),
+            recognizer.windowSeconds
+        )
+        comboPendingTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+            guard !Task.isCancelled, let self else { return }
+            self.comboPendingTask = nil
+            self.pendingComboZone = nil
+            let held = self.heldTapConfidence ?? confidence
+            self.heldTapConfidence = nil
+            let gestures = self.recognizer.flush()
+            guard let profile = self.selectedProfile else { return }
+            for gesture in gestures {
+                self.dispatch(gesture, profile: profile, confidence: held)
+            }
+        }
+    }
+
+    private func dispatch(_ gesture: TapGesture, profile: HoloProfile, confidence: Double) {
+        highlight(gesture.zones.last)
+        statusMessage = gesture.isSingle
+            ? "\(gesture.displayName) • \(Int(confidence * 100))% confidence"
+            : "Combo • \(gesture.displayName)"
+        do { try actionDispatcher.perform(profile.action(for: gesture)) }
+        catch {
+            statusMessage = "\(gesture.displayName) accepted • action failed"
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Drops a held tap without running its action. Used whenever listening stops,
+    /// the profile changes, or the Desk surface is left.
+    private func cancelPendingCombo() {
+        comboPendingTask?.cancel()
+        comboPendingTask = nil
+        recognizer.reset()
+        heldTapConfidence = nil
+        pendingComboZone = nil
     }
 
     private func handleCalibration(_ observation: TapObservation, session: inout CalibrationSession) {
@@ -949,13 +1076,18 @@ final class AppModel: ObservableObject {
         benchmarkSession?.isSettling = false
         diagnosticCaptureArmed = false
         guidedCaptureIssue = nil
+        cancelPendingCombo()
     }
 
     private func present(_ decision: ClassificationDecision) {
-        activeZoneClearTask?.cancel()
         lastDecision = decision
-        activeZone = decision.zone
-        guard let zone = decision.zone else { return }
+        highlight(decision.zone)
+    }
+
+    private func highlight(_ zone: DeskZone?) {
+        activeZoneClearTask?.cancel()
+        activeZone = zone
+        guard let zone else { return }
         activeZoneClearTask = Task { [weak self] in
             do {
                 try await Task.sleep(nanoseconds: 800_000_000)

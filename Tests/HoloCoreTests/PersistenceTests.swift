@@ -275,6 +275,105 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(try store.load()?.profileID, profileID)
     }
 
+    func testCombosRoundTripAndResolveTheirActions() throws {
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let store = try ProfileStore(directory: temporary)
+        let double = TapGesture.pair(.leftTop, .leftTop)
+        let chord = TapGesture.pair(.leftTop, .rightBottom)
+        let profile = try makeProfile(combos: [
+            ComboBinding(gesture: double, action: ZoneActionConfiguration(kind: .speakText, text: "Focus")),
+            ComboBinding(gesture: chord, action: ZoneActionConfiguration(kind: .screenshotClipboard))
+        ])
+        try store.save(profile)
+
+        let loaded = try XCTUnwrap(store.loadAll().first)
+        XCTAssertEqual(loaded.combos.count, 2)
+        XCTAssertEqual(loaded.action(for: double).kind, .speakText)
+        XCTAssertEqual(loaded.action(for: double).text, "Focus")
+        XCTAssertEqual(loaded.action(for: chord).kind, .screenshotClipboard)
+        // A single-tap gesture still resolves through the four zone bindings.
+        XCTAssertEqual(loaded.action(for: TapGesture.single(.leftTop)).kind, .none)
+        // Only a zone that begins a bound combo may delay a single tap.
+        XCTAssertEqual(loaded.comboPrefixZones, [.leftTop])
+        XCTAssertEqual(loaded.boundGestures, [double, chord])
+    }
+
+    func testProfileSavedBeforeCombosExistedStillLoads() throws {
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let store = try ProfileStore(directory: temporary)
+        let profile = try makeProfile(combos: [ComboBinding(gesture: .pair(.leftTop, .leftTop))])
+        try store.save(profile)
+
+        // Strip the key a pre-combo build never wrote. The profile is still version 3
+        // because combos change no topology, so it must load with its calibration
+        // intact rather than be discarded.
+        let url = temporary.appendingPathComponent("\(profile.id.uuidString).json")
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        XCTAssertNotNil(object["combos"])
+        object.removeValue(forKey: "combos")
+        try JSONSerialization.data(withJSONObject: object).write(to: url, options: .atomic)
+
+        let loaded = try XCTUnwrap(store.loadAll().first)
+        XCTAssertEqual(loaded.id, profile.id)
+        XCTAssertEqual(loaded.version, HoloProfile.currentVersion)
+        XCTAssertTrue(loaded.combos.isEmpty)
+        XCTAssertTrue(loaded.comboPrefixZones.isEmpty)
+        XCTAssertEqual(loaded.zones.map(\.zone), DeskZone.allCases)
+    }
+
+    func testDuplicateComboIsReported() throws {
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let store = try ProfileStore(directory: temporary)
+        let gesture = TapGesture.pair(.leftTop, .rightTop)
+        let profile = try makeProfile(combos: [
+            ComboBinding(gesture: gesture, action: ZoneActionConfiguration(kind: .sound)),
+            ComboBinding(gesture: gesture, action: ZoneActionConfiguration(kind: .screenshotClipboard))
+        ])
+        try store.save(profile)
+
+        XCTAssertThrowsError(try store.loadAll()) { error in
+            XCTAssertEqual(
+                error as? ProfileStoreError,
+                .invalidCurrentCombos("\(profile.id.uuidString).json")
+            )
+        }
+    }
+
+    func testSingleTapStoredAsAComboIsReported() throws {
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let store = try ProfileStore(directory: temporary)
+        // Single taps belong in `zones`; a one-tap combo is a malformed profile.
+        let profile = try makeProfile(combos: [ComboBinding(gesture: .single(.leftTop))])
+        try store.save(profile)
+
+        XCTAssertThrowsError(try store.loadAll()) { error in
+            XCTAssertEqual(
+                error as? ProfileStoreError,
+                .invalidCurrentCombos("\(profile.id.uuidString).json")
+            )
+        }
+    }
+
+    private func makeProfile(combos: [ComboBinding]) throws -> HoloProfile {
+        let classifier = try TrainedTapClassifier.train(positiveExamples: samples())
+        return HoloProfile(
+            name: "Oak desk",
+            surfaceDescription: "Solid oak",
+            laptopPositionNote: "Centered",
+            classifier: classifier,
+            calibration: CalibrationSummary(
+                sampleCount: DeskZone.allCases.count * 2,
+                samplesPerZone: Array(repeating: 2, count: DeskZone.allCases.count),
+                leaveOneOutAccuracy: 1
+            ),
+            combos: combos
+        )
+    }
+
     private func samples() -> [LabeledTap] {
         DeskZone.allCases.flatMap { zone in
             (0..<2).map { index in

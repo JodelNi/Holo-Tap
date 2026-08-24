@@ -21,10 +21,11 @@ struct LiveSurfaceView: View {
 
             DeskMapView(
                 activeZone: model.activeZone,
-                targetZone: nil,
+                targetZone: model.pendingComboZone,
                 confidence: model.lastDecision?.confidence ?? 0,
                 signalStrength: model.lastDecision?.signalStrength ?? model.audio.liveLevel,
-                isListening: model.audio.isListening
+                isListening: model.audio.isListening,
+                targetDescription: "Waiting for a second tap"
             )
             .frame(maxWidth: 760, maxHeight: 490)
             .padding(.horizontal, 36)
@@ -67,7 +68,7 @@ struct LiveSurfaceView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(lastResultTitle)
                     .font(.headline)
-                Text(model.lastDecision?.rejectionReason?.displayName ?? model.selectedProfile?.name ?? "")
+                Text(lastResultDetail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -102,8 +103,14 @@ struct LiveSurfaceView: View {
     }
 
     private var lastResultTitle: String {
+        if let pending = model.pendingComboZone { return pending.displayName }
         guard let decision = model.lastDecision else { return "Waiting for a tap" }
         return decision.zone?.displayName ?? "Tap rejected"
+    }
+
+    private var lastResultDetail: String {
+        if model.pendingComboZone != nil { return "Waiting for a second tap" }
+        return model.lastDecision?.rejectionReason?.displayName ?? model.selectedProfile?.name ?? ""
     }
 
     private func compactGauge(_ label: String, value: Double) -> some View {

@@ -89,6 +89,9 @@ public struct HoloProfile: Codable, Equatable, Sendable, Identifiable {
     public var classifier: TrainedTapClassifier
     public var calibration: CalibrationSummary
     public var zones: [ZoneConfiguration]
+    /// User-added two-tap combos. Sparse and empty by default: a combo exists only
+    /// because someone added it, so a profile that uses none costs nothing.
+    public var combos: [ComboBinding]
 
     public init(
         id: UUID = UUID(),
@@ -97,7 +100,8 @@ public struct HoloProfile: Codable, Equatable, Sendable, Identifiable {
         laptopPositionNote: String,
         classifier: TrainedTapClassifier,
         calibration: CalibrationSummary,
-        zones: [ZoneConfiguration] = DeskZone.allCases.map { ZoneConfiguration(zone: $0) }
+        zones: [ZoneConfiguration] = DeskZone.allCases.map { ZoneConfiguration(zone: $0) },
+        combos: [ComboBinding] = []
     ) {
         self.version = Self.currentVersion
         self.id = id
@@ -109,6 +113,33 @@ public struct HoloProfile: Codable, Equatable, Sendable, Identifiable {
         self.classifier = classifier
         self.calibration = calibration
         self.zones = zones
+        self.combos = combos
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, id, name, surfaceDescription, laptopPositionNote
+        case createdAt, updatedAt, classifier, calibration, zones, combos
+    }
+
+    /// Decoded by hand so that `combos` can default when the key is absent. Swift's
+    /// synthesized decoder does not fall back to a property's default value, and the
+    /// version gate in `ProfileStore` drops anything that is not exactly the current
+    /// version. Combos are additive and change no topology, so a profile saved before
+    /// they existed must keep loading — and keep its calibration — rather than be
+    /// discarded by a version bump.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decode(Int.self, forKey: .version)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        surfaceDescription = try container.decode(String.self, forKey: .surfaceDescription)
+        laptopPositionNote = try container.decode(String.self, forKey: .laptopPositionNote)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        classifier = try container.decode(TrainedTapClassifier.self, forKey: .classifier)
+        calibration = try container.decode(CalibrationSummary.self, forKey: .calibration)
+        zones = try container.decode([ZoneConfiguration].self, forKey: .zones)
+        combos = try container.decodeIfPresent([ComboBinding].self, forKey: .combos) ?? []
     }
 
     public var sensingStrategy: SensingStrategy { classifier.strategy }
@@ -116,12 +147,29 @@ public struct HoloProfile: Codable, Equatable, Sendable, Identifiable {
     public func action(for zone: DeskZone) -> ZoneActionConfiguration {
         zones.first(where: { $0.zone == zone })?.action ?? ZoneActionConfiguration(kind: .none)
     }
+
+    public func action(for gesture: TapGesture) -> ZoneActionConfiguration {
+        if let binding = combos.first(where: { $0.gesture == gesture }) { return binding.action }
+        guard gesture.isSingle else { return ZoneActionConfiguration(kind: .none) }
+        return action(for: gesture.firstZone)
+    }
+
+    /// Zones that begin at least one bound combo. Only a tap in one of these zones is
+    /// ever delayed to wait for a partner.
+    public var comboPrefixZones: Set<DeskZone> {
+        Set(combos.lazy.filter { !$0.gesture.isSingle }.map { $0.gesture.firstZone })
+    }
+
+    public var boundGestures: Set<TapGesture> {
+        Set(combos.map(\.gesture))
+    }
 }
 
 public enum ProfileStoreError: Error, LocalizedError, Equatable {
     case invalidCurrentTopology(String)
     case invalidCurrentClassifier(String)
     case invalidCurrentCalibration(String)
+    case invalidCurrentCombos(String)
 
     public var errorDescription: String? {
         switch self {
@@ -131,6 +179,8 @@ public enum ProfileStoreError: Error, LocalizedError, Equatable {
             return "The classifier in \(filename) is incomplete or internally inconsistent. Recalibrate this desk."
         case .invalidCurrentCalibration(let filename):
             return "The calibration summary in \(filename) does not match its four-zone classifier. Recalibrate this desk."
+        case .invalidCurrentCombos(let filename):
+            return "The tap combos in \(filename) repeat a combo or use zones this desk does not have. Edit them in Actions."
         }
     }
 }
@@ -181,6 +231,9 @@ public final class ProfileStore {
             }
             guard calibrationIsValid(profile.calibration, classifier: profile.classifier) else {
                 throw ProfileStoreError.invalidCurrentCalibration(url.lastPathComponent)
+            }
+            guard combosAreValid(profile.combos, requiredZones: requiredZones) else {
+                throw ProfileStoreError.invalidCurrentCombos(url.lastPathComponent)
             }
             return profile
         }
@@ -267,6 +320,16 @@ public final class ProfileStore {
         }
         guard let agreement = calibration.leaveOneOutAccuracy else { return true }
         return agreement.isFinite && (0...1).contains(agreement)
+    }
+
+    /// Single taps are stored in `zones`, so a stored combo must name exactly two of
+    /// this desk's zones, and no combo may be bound twice.
+    private func combosAreValid(_ combos: [ComboBinding], requiredZones: Set<DeskZone>) -> Bool {
+        let wellFormed = combos.allSatisfy { binding in
+            binding.gesture.tapCount == TapGesture.maximumTapCount
+                && binding.gesture.zones.allSatisfy { requiredZones.contains($0) }
+        }
+        return wellFormed && Set(combos.map(\.id)).count == combos.count
     }
 
     private func signalQualityIsValid(_ quality: SignalQuality) -> Bool {

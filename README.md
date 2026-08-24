@@ -38,6 +38,7 @@ The recovered physical baseline, failure analysis, and controlled iteration prot
 - Passive tap acoustics, an optional active acoustic probe, and a hybrid mode.
 - Robust feature normalization, a regularized linear zone model backed by nearest-example novelty checks, ambiguity rejection, out-of-distribution rejection, and optional negative examples.
 - Per-profile actions: visual only, play a sound, copy or speak text, open a website, run a Shortcut, open an application or item, execute a shell command, or capture a screenshot. New zones default to visual-only until the user assigns a side effect.
+- Optional two-tap combos: the same zone twice, or two zones in order, bound to any of the same actions. Combos are added one at a time and a profile starts with none. Only a zone that begins a bound combo waits for a second tap, so a profile without combos dispatches exactly as before. The two taps are deliberate ones roughly half a second apart — the detector's refractory period means a trackpad-speed double tap is heard as a single tap.
 - Guided 60-tap held-out evaluation with per-zone accuracy, latency, rejected-tap counts, and a confusion matrix.
 - Saved evaluation history is restored after relaunch and scoped to the desk profile that produced it.
 - Signal diagnostics, labeled feature capture, approach comparison, JSON/CSV reports, and opt-in raw debug WAV capture.
@@ -97,7 +98,7 @@ While calibration, an accuracy test, or a sensing comparison is active, unrelate
 
 ## Assigning actions
 
-Actions contains exactly four rows grouped by side. Changes save to the selected profile as they are made, and each configured action has an inline Test button.
+Actions contains four single-tap rows grouped by side, plus a Combos section that starts empty. Changes save to the selected profile as they are made, and each configured action has an inline Test button.
 
 - Visual only highlights the accepted zone without a side effect.
 - Play sound uses an available macOS system sound.
@@ -110,6 +111,16 @@ Actions contains exactly four rows grouped by side. Changes save to the selected
 - Run shell command executes the configured command through `/bin/zsh` with Holo's sandbox permissions.
 - Screenshot to clipboard captures the full display without saving a file.
 - Select screenshot to clipboard invokes the standard interactive area-selection tool.
+
+### Combos
+
+Add Combo binds a second tap to the first. Any ordered pair of zones is available, including the same zone twice, and each combo takes the same action kinds as a single tap.
+
+- The two taps are deliberate, roughly half a second apart. The detector holds a 140 ms refractory period after each 90 ms analysis window, so a second tap cannot be observed sooner than about 230 ms after the first. A trackpad-speed double tap is heard as one tap.
+- Only a zone that begins a bound combo waits. Every other zone dispatches immediately, so binding no combos costs no latency anywhere. The single-tap row for such a zone is marked as waiting for a second tap.
+- A held tap shows on the desk map as waiting rather than accepted. If no second tap arrives within 450 ms, the held tap runs its own single-tap action.
+- Both taps have to be classified correctly, so a combo is about as reliable as single-tap accuracy squared. The same zone twice is the more robust choice, because both taps come from one place on the desk.
+- Pausing, changing profile, or leaving Desk drops a held tap without running anything.
 
 Actions run only for an accepted classification while Desk is selected. Calibration, profile editing, diagnostics, accuracy reports, and the Actions editor suppress automatic side effects; the editor's inline Test button remains explicit. Rejected, ambiguous, weak, clipped, or out-of-distribution events do not trigger an action. Shell commands run automatically once assigned, so commands should be safe to repeat and should not depend on an interactive terminal. macOS may request access when an action first opens a protected item or captures the screen. A Shortcut is the recommended way to compose multi-step workflows such as opening Claude and beginning a user-defined voice flow.
 
@@ -155,6 +166,7 @@ AVAudioEngine input
   → passive / active feature extraction
   → regularized zone model + nearest-example rejection gates
   → accepted four-zone decision
+  → tap sequence recognizer (single tap or two-tap combo)
   → local action dispatcher
 ```
 
@@ -162,7 +174,7 @@ AVAudioEngine input
 - `Sources/HoloApp` contains audio capture, app state, local action dispatch, and the native SwiftUI interface.
 - `Sources/HoloSoak` is a non-GUI synthetic DSP stress runner.
 - `Sources/HoloRouteCheck` is a non-GUI check of the current Core Audio input/output transport policy.
-- `Tests/HoloCoreTests` covers guided session totals and ordering, guided-capture quality gates, adaptive room-noise rejection, microphone-request coalescing, the chunked detector-to-classifier pipeline, injected active-probe recovery, shared-spectrum analysis, hardware-route policy, validated local-action planning, negative and ambiguity rejection, evaluation history, strict profile persistence, WAV output, and the exact four-zone topology.
+- `Tests/HoloCoreTests` covers the tap sequence recognizer's holding, flushing, and non-overlapping matching rules, guided session totals and ordering, guided-capture quality gates, adaptive room-noise rejection, microphone-request coalescing, the chunked detector-to-classifier pipeline, injected active-probe recovery, shared-spectrum analysis, hardware-route policy, validated local-action planning, negative and ambiguity rejection, evaluation history, strict profile persistence, WAV output, and the exact four-zone topology.
 
 Each detected window uses one shared power spectrum for classification, active-response bands, and diagnostics rather than repeating the same FFT. Capture generations discard observations queued by an audio route or strategy that has already been stopped.
 
@@ -257,6 +269,7 @@ DYLD_FRAMEWORK_PATH=/tmp/HoloRouteDerived/Build/Products/Debug \
 - Short consonants, typing, laptop touches, dropped objects, and nearby impacts can resemble taps. The sustained-sound gate and profile-specific negatives reduce false positives but cannot guarantee none.
 - Calibration quality depends on consistent natural taps. The UI prevents unarmed sounds from being added, but it cannot know whether the user tapped the intended physical location.
 - The active probe is experimental and can be filtered or audible on some hardware.
+- A combo needs both of its taps classified correctly, so its reliability is roughly single-tap accuracy squared. No measured combo accuracy is claimed. The detector's refractory period also puts a hard floor of about 230 ms between two detectable taps, so a fast double tap cannot be recognized at all.
 - The 80% and 200 ms targets must still be demonstrated with a real held-out session for each target setup.
 - Automated stress results do not replace a 30-minute live microphone and action-dispatch run on the target Mac.
 

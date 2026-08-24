@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct ZoneActionsView: View {
     @ObservedObject var model: AppModel
     @State private var confirmDelete = false
+    @State private var isAddingCombo = false
 
     var body: some View {
         Group {
@@ -14,7 +15,7 @@ struct ZoneActionsView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Assign actions")
                             .font(.title.weight(.semibold))
-                        Text("Each accepted tap runs its assigned action. Changes save automatically.")
+                        Text("Each accepted tap runs its assigned action. Combos add two-tap gestures. Changes save automatically.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
@@ -22,35 +23,17 @@ struct ZoneActionsView: View {
                     Form {
                         Section("Left of MacBook") {
                             ForEach(sortedConfigurations(profile, isLeft: true)) { configuration in
-                                ZoneActionRow(
-                                    configuration: configuration,
-                                    onChange: { action in
-                                        model.updateAction(for: configuration.zone, action: action)
-                                    },
-                                    onTest: model.testAction,
-                                    onError: { error in
-                                        model.errorMessage = "The action could not be assigned. \(error.localizedDescription)"
-                                    }
-                                )
-                                .id("\(profile.id)-\(configuration.zone.rawValue)")
+                                zoneRow(profile: profile, configuration: configuration)
                             }
                         }
 
                         Section("Right of MacBook") {
                             ForEach(sortedConfigurations(profile, isLeft: false)) { configuration in
-                                ZoneActionRow(
-                                    configuration: configuration,
-                                    onChange: { action in
-                                        model.updateAction(for: configuration.zone, action: action)
-                                    },
-                                    onTest: model.testAction,
-                                    onError: { error in
-                                        model.errorMessage = "The action could not be assigned. \(error.localizedDescription)"
-                                    }
-                                )
-                                .id("\(profile.id)-\(configuration.zone.rawValue)")
+                                zoneRow(profile: profile, configuration: configuration)
                             }
                         }
+
+                        comboSection(profile)
 
                         Section("Automation") {
                             Label("Use Run Shortcut for multi-step workflows such as opening Claude and starting a voice workflow.", systemImage: "command")
@@ -96,6 +79,75 @@ struct ZoneActionsView: View {
         } message: {
             Text("The saved calibration and its four actions will be removed.")
         }
+        .sheet(isPresented: $isAddingCombo) {
+            AddComboSheet(existingIDs: Set(model.selectedProfile?.combos.map(\.id) ?? [])) { gesture in
+                model.addCombo(gesture)
+            }
+        }
+    }
+
+    private func zoneRow(profile: HoloProfile, configuration: ZoneConfiguration) -> some View {
+        let side = configuration.zone.isLeft ? "left" : "right"
+        // A zone that begins a combo pays for it on every single tap, so the cost is
+        // stated on the row that carries it rather than only in the Combos help text.
+        let beginsACombo = profile.comboPrefixZones.contains(configuration.zone)
+        return ZoneActionRow(
+            title: configuration.zone.positionName,
+            subtitle: configuration.zone.isLeft ? "Left side" : "Right side",
+            accessibilityName: "\(configuration.zone.positionName), \(side) side",
+            note: beginsACombo ? "Waits for a second tap" : nil,
+            labelWidth: 112,
+            action: configuration.action,
+            onChange: { action in
+                model.updateAction(for: configuration.zone, action: action)
+            },
+            onTest: model.testAction,
+            onError: { error in
+                model.errorMessage = "The action could not be assigned. \(error.localizedDescription)"
+            }
+        )
+        .id("\(profile.id)-\(configuration.zone.rawValue)")
+    }
+
+    @ViewBuilder
+    private func comboSection(_ profile: HoloProfile) -> some View {
+        Section("Combos") {
+            ForEach(profile.combos) { binding in
+                HStack(spacing: 8) {
+                    ZoneActionRow(
+                        title: binding.gesture.displayName,
+                        subtitle: "Two taps",
+                        accessibilityName: binding.gesture.displayName,
+                        labelWidth: 168,
+                        action: binding.action,
+                        onChange: { action in
+                            model.updateCombo(binding.gesture, action: action)
+                        },
+                        onTest: model.testAction,
+                        onError: { error in
+                            model.errorMessage = "The action could not be assigned. \(error.localizedDescription)"
+                        }
+                    )
+                    .id("\(profile.id)-combo-\(binding.id)")
+
+                    Button("Remove", systemImage: "minus.circle") {
+                        model.removeCombo(binding.gesture)
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Remove combo \(binding.gesture.displayName)")
+                }
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Button("Add Combo", systemImage: "plus") { isAddingCombo = true }
+                    .holoSecondaryButton()
+                Text("Tap, pause about half a second, then tap again. A trackpad-speed double tap is too quick for Holo to hear as two taps.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private func sortedConfigurations(_ profile: HoloProfile, isLeft: Bool) -> [ZoneConfiguration] {
@@ -105,8 +157,83 @@ struct ZoneActionsView: View {
     }
 }
 
+private struct AddComboSheet: View {
+    let existingIDs: Set<String>
+    let onAdd: (TapGesture) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var firstZone: DeskZone = .leftTop
+    @State private var secondZone: DeskZone = .leftBottom
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Add a combo")
+                    .font(.title3.weight(.semibold))
+                Text("Two taps in order. The same zone twice is the most reliable combo, because both taps come from one place on the desk.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Form {
+                Picker("First tap", selection: $firstZone) {
+                    ForEach(DeskZone.allCases) { zone in
+                        Text(zone.displayName).tag(zone)
+                    }
+                }
+                Picker("Second tap", selection: $secondZone) {
+                    ForEach(DeskZone.allCases) { zone in
+                        Text(zone.displayName).tag(zone)
+                    }
+                }
+                LabeledContent("Gesture") {
+                    Text(gesture.displayName)
+                }
+            }
+            .formStyle(.grouped)
+
+            if isDuplicate {
+                Label("This combo is already assigned.", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .holoSecondaryButton()
+                Button("Add Combo") {
+                    onAdd(gesture)
+                    dismiss()
+                }
+                .holoPrimaryButton()
+                .disabled(isDuplicate)
+            }
+        }
+        .padding(24)
+        .frame(width: 460)
+    }
+
+    private var gesture: TapGesture {
+        .pair(firstZone, secondZone)
+    }
+
+    private var isDuplicate: Bool {
+        existingIDs.contains(gesture.id)
+    }
+}
+
+/// The editor for one binding. Shared by the four single-tap zones and by combos so
+/// that both get the same progressive disclosure, Test button, and failed-save revert.
 private struct ZoneActionRow: View {
-    let configuration: ZoneConfiguration
+    let title: String
+    let subtitle: String
+    let accessibilityName: String
+    /// An extra fact about this row, such as the delay a bound combo imposes on the
+    /// zone that begins it. Omitted entirely when there is nothing to say.
+    let note: String?
+    let labelWidth: CGFloat
     let onChange: (ZoneActionConfiguration) -> Bool
     let onTest: (ZoneActionConfiguration) -> Void
     let onError: (Error) -> Void
@@ -116,16 +243,25 @@ private struct ZoneActionRow: View {
     private let sounds = ["Tink", "Pop", "Ping", "Glass", "Funk", "Morse", "Purr", "Sosumi"]
 
     init(
-        configuration: ZoneConfiguration,
+        title: String,
+        subtitle: String,
+        accessibilityName: String,
+        note: String? = nil,
+        labelWidth: CGFloat = 86,
+        action: ZoneActionConfiguration,
         onChange: @escaping (ZoneActionConfiguration) -> Bool,
         onTest: @escaping (ZoneActionConfiguration) -> Void,
         onError: @escaping (Error) -> Void
     ) {
-        self.configuration = configuration
+        self.title = title
+        self.subtitle = subtitle
+        self.accessibilityName = accessibilityName
+        self.note = note
+        self.labelWidth = labelWidth
         self.onChange = onChange
         self.onTest = onTest
         self.onError = onError
-        _action = State(initialValue: configuration.action)
+        _action = State(initialValue: action)
     }
 
     var body: some View {
@@ -138,7 +274,7 @@ private struct ZoneActionRow: View {
                 }
                 .labelsHidden()
                 .frame(width: 190)
-                .accessibilityLabel("Action for \(zoneDescription)")
+                .accessibilityLabel("Action for \(accessibilityName)")
 
                 detailControl
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -150,17 +286,23 @@ private struct ZoneActionRow: View {
                 .buttonStyle(.borderless)
                 .disabled(!canTest)
                 .help(canTest ? "Test this action" : "Finish configuring this action before testing")
-                .accessibilityLabel("Test action for \(zoneDescription)")
+                .accessibilityLabel("Test action for \(accessibilityName)")
             }
         } label: {
             VStack(alignment: .leading, spacing: 1) {
-                Text(configuration.zone.positionName)
+                Text(title)
                     .font(.body.weight(.medium))
-                Text(configuration.zone.isLeft ? "Left side" : "Right side")
+                Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let note {
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .frame(width: 86, alignment: .leading)
+            .frame(width: labelWidth, alignment: .leading)
         }
         .padding(.vertical, 4)
         .onChange(of: action) { oldValue, newValue in
@@ -177,10 +319,6 @@ private struct ZoneActionRow: View {
 
     private var canTest: Bool {
         LocalActionPlanner.command(for: action) != nil
-    }
-
-    private var zoneDescription: String {
-        "\(configuration.zone.positionName), \(configuration.zone.isLeft ? "left" : "right") side"
     }
 
     @ViewBuilder

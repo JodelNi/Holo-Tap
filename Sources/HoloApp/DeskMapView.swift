@@ -10,6 +10,9 @@ struct DeskMapView: View {
     var signalStrength: Double
     var isListening: Bool
     var counts: [Int]? = nil
+    /// How the secondary highlight reads to VoiceOver. Guided capture points at the
+    /// next zone to tap; the Desk uses it for a tap held back for a combo.
+    var targetDescription = "Current target"
 
     var body: some View {
         GeometryReader { geometry in
@@ -118,7 +121,7 @@ struct DeskMapView: View {
 
     private func accessibilityValue(for zone: DeskZone, active: Bool, target: Bool) -> String {
         var parts: [String] = []
-        if target { parts.append("Current target") }
+        if target { parts.append(targetDescription) }
         if active { parts.append("Last detected, \(Int(confidence * 100)) percent confidence") }
         if let counts, zone.rawValue < counts.count { parts.append("\(counts[zone.rawValue]) captured") }
         return parts.isEmpty ? "Inactive" : parts.joined(separator: ", ")
