@@ -44,7 +44,7 @@ The recovered physical baseline, failure analysis, and controlled iteration prot
 - Sandboxed, local persistence. Raw audio is discarded by default.
 - Core Audio route validation requires the built-in microphone for every mode and the built-in speakers for Active or Hybrid sensing.
 
-## Requirements
+## Requirements (macOS)
 
 - macOS 14 or later.
 - Xcode 26 is recommended for the current project. The app uses Liquid Glass button styles on macOS 26 and native bordered controls on older supported systems.
@@ -52,7 +52,15 @@ The recovered physical baseline, failure analysis, and controlled iteration prot
 - A MacBook with its built-in microphone selected. External inputs are rejected rather than silently changing the calibrated signal path.
 - Active and Hybrid sensing additionally require MacBook Speakers as the selected output. Passive sensing does not emit a probe.
 
-## Build
+## Requirements (Linux)
+
+- A modern Linux distribution with Swift 5.9+ installed.
+- PulseAudio development headers (`libpulse-dev`).
+- GTK 3 development headers (for `SwiftGtk`).
+- A built-in or external microphone set as the default PulseAudio input.
+- Standard Linux utilities for action dispatch: `paplay`/`aplay` (sounds), `wl-copy`/`xclip` (clipboard), `xdg-open` (URLs), `grim`/`scrot` (screenshots).
+
+## Build (macOS)
 
 Generate the Xcode project after changing `project.yml`:
 
@@ -75,6 +83,29 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   build
 ```
+
+## Build & Run (Linux)
+
+The Linux port is built entirely using the Swift Package Manager and is split into two independent executables:
+
+1. **HoloUI**: The GTK-based calibration interface.
+2. **HoloDaemon**: The background listener and action dispatcher.
+
+To calibrate your desk on Linux:
+
+```sh
+swift run HoloUI
+```
+
+This opens a native GTK window. Follow the on-screen prompts to arm each zone and tap 10 times. Once complete, it saves a `HoloProfile` to disk.
+
+To run the daemon that listens for taps and triggers actions:
+
+```sh
+swift run HoloDaemon
+```
+
+The daemon will automatically load your most recent calibration profile and listen via PulseAudio.
 
 ## Calibration
 
@@ -158,8 +189,10 @@ AVAudioEngine input
   → local action dispatcher
 ```
 
-- `Sources/HoloCore` contains the guided capture protocols, detector, FFT and feature extraction, classifier, persistence models, diagnostics, evaluation reporting, and WAV writer. It has no SwiftUI dependency.
-- `Sources/HoloApp` contains audio capture, app state, local action dispatch, and the native SwiftUI interface.
+- `Sources/HoloCore` contains the guided capture protocols, detector, FFT and feature extraction, classifier, persistence models, diagnostics, evaluation reporting, and WAV writer. It has no SwiftUI or Apple-specific dependencies and is fully cross-platform.
+- `Sources/HoloApp` contains macOS audio capture, app state, local action dispatch, and the native SwiftUI interface.
+- `Sources/HoloUI` contains the Linux GTK calibration interface and PulseAudio background capture.
+- `Sources/HoloDaemon` contains the headless Linux PulseAudio daemon and action dispatcher (supporting both Wayland and X11 workflows).
 - `Sources/HoloSoak` is a non-GUI synthetic DSP stress runner.
 - `Sources/HoloRouteCheck` is a non-GUI check of the current Core Audio input/output transport policy.
 - `Tests/HoloCoreTests` covers guided session totals and ordering, guided-capture quality gates, adaptive room-noise rejection, microphone-request coalescing, the chunked detector-to-classifier pipeline, injected active-probe recovery, shared-spectrum analysis, hardware-route policy, validated local-action planning, negative and ambiguity rejection, evaluation history, strict profile persistence, WAV output, and the exact four-zone topology.

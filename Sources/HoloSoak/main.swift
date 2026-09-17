@@ -1,4 +1,8 @@
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import Foundation
 import HoloCore
 
@@ -47,6 +51,7 @@ private func syntheticEvent(zone: DeskZone, sampleRate: Double, variation: Doubl
 }
 
 private func residentMegabytes() -> Double {
+    #if canImport(Darwin)
     var info = mach_task_basic_info()
     var count = mach_msg_type_number_t(
         MemoryLayout<mach_task_basic_info_data_t>.size / MemoryLayout<natural_t>.size
@@ -58,6 +63,16 @@ private func residentMegabytes() -> Double {
     }
     guard result == KERN_SUCCESS else { return 0 }
     return Double(info.resident_size) / (1_024 * 1_024)
+    #else
+    do {
+        let statm = try String(contentsOfFile: "/proc/self/statm")
+        let pages = statm.split(separator: " ").dropFirst().first.flatMap { Int($0) } ?? 0
+        let pageSize = Double(sysconf(Int32(_SC_PAGESIZE)))
+        return (Double(pages) * pageSize) / (1_024 * 1_024)
+    } catch {
+        return 0
+    }
+    #endif
 }
 
 let arguments = CommandLine.arguments

@@ -1,0 +1,6 @@
+module CPulseAudio [system] {
+    header "CPulseAudio.h"
+    link "pulse"
+    link "pulse-simple"
+    export *
+}

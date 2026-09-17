@@ -57,7 +57,9 @@ enum Radix2FFT {
         }
 
         return (0...(size / 2)).map { index in
-            (real[index] * real[index] + imaginary[index] * imaginary[index]) / Double(size)
+            let r2 = real[index] * real[index]
+            let i2 = imaginary[index] * imaginary[index]
+            return (r2 + i2) / Double(size)
         }
     }
 
